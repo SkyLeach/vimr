@@ -1,10 +1,15 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# This is wrong.  Use environment.  !/usr/bin/python
 
-import urllib
+import os
+import sys
 import subprocess
 import argparse
-import os
 import uuid
+if sys.version_info.major > 2 and sys.version_info.minor > 2:
+    from urllib.parse import urlencode
+else:
+    from urllib import urlencode
 
 
 class Action:
@@ -35,7 +40,12 @@ def call_open(action, query_params, args):
     if args.wait:
         query_params[QueryParamKey.WAIT] = "true"
 
-    url = "vimr://{0}?{1}".format(action, urllib.urlencode(query_params, True).replace('+', '%20'))
+    url = "vimr://{0}?{1}".format(
+            action,
+            urlencode(
+                query_params,
+                True
+                ).replace('+', '%20'))
 
     if args.dry_run:
         print("/usr/bin/open {0}".format(url))
@@ -80,7 +90,8 @@ if os.path.exists(pipe_path):
     os.remove(pipe_path)
 
 try:
-    os.mkfifo(pipe_path, 0600)
+    # portable py3
+    os.mkfifo(pipe_path, int('600', 8))
 except OSError as error:
     print("ERROR: {0}\n"
           "{1} could not be mkfifo'ed.\n"
@@ -88,25 +99,37 @@ except OSError as error:
     raise
 
 description = """
-Open files in VimR: By default all files are open in tabs in the front most window or in a new window if there is none.
-The working directory will be set to the current directory.
+Open files in VimR: By default all files are open in tabs in the front
+most window or in a new window if there is none. The working directory
+will be set to the current directory.
 """
 
 parser = argparse.ArgumentParser(description=description)
 
-parser.add_argument("--dry-run", action="store_true", dest="dry_run", help="Just print the 'open' command.")
-parser.add_argument("--cwd", action="store", help="Set the working directory.")
+parser.add_argument("--dry-run",
+        action="store_true",
+        dest="dry_run",
+        help="Just print the 'open' command.")
+parser.add_argument("--cwd",
+        action="store",
+        help="Set the working directory.")
 parser.add_argument("--wait",
-                    action="store_true",
-                    help="This command line tool will exit when the corresponding UI window is closed.")
+        action="store_true",
+        help="This command line tool will exit when the corresponding UI window is closed.")
 parser.add_argument("--nvim",
-                        action="store_true",
-                        help="All other arguments (except --dry-run and --wait) will be passed over to nvim.")
+        action="store_true",
+        help="All other arguments (except --dry-run and --wait) will be passed over to nvim.")
 
 group = parser.add_mutually_exclusive_group()
 # no option => Open files in tabs in the front most window.
-group.add_argument("-n", action="store_true", dest="new_window", help="Open files in tabs in a new window.")
-group.add_argument("-s", action="store_true", dest="separate_windows", help="Open files in separate windows.")
+group.add_argument("-n",
+        action="store_true",
+        dest="new_window",
+        help="Open files in tabs in a new window.")
+group.add_argument("-s",
+        action="store_true",
+        dest="separate_windows",
+        help="Open files in separate windows.")
 
 parser.add_argument("file", nargs="*")
 
